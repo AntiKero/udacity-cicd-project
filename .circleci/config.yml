@@ -149,7 +149,7 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["bf:81:84:91:0d:48:d8:bf:c5:9c:04:d0:be:d4:8f:ce:57:28:f3:84"]
+          fingerprints: ["bf:81:84:91:0d:48:d8:bf:c5:9c:04:d0:be:d4:8f:ce"]
       - attach_workspace:
           at: ~/
       - restore_cache:
@@ -161,23 +161,8 @@ jobs:
       - run: 
           name: Configure server
           command: |
-            pwd
-            cat .circleci/ansible/inventory.txt
-            echo ENVIRONMENT=production > "backend/.env"
-            ls
-            echo TYPEORM_CONNECTION=postgres >> "backend/.env"
-            echo TYPEORM_ENTITIES=./src/modules/domain/**/*.entity.ts >> "backend/.env"
-            echo TYPEORM_MIGRATIONS=./src/migrations/*.ts >> "backend/.env"
-            echo TYPEORM_MIGRATIONS_DIR=./src/migrations >> "backend/.env"
-            echo NODE_ENV=production >> "backend/.env"
-            echo TYPEORM_HOST=$TYPEORM_HOST >> "backend/.env"
-            echo TYPEORM_PORT=$TYPEORM_PORT >> "backend/.env"
-            echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> "backend/.env"
-            echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
-            echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
-            ansible-playbook -i .circleci/ansible/inventory.txt .circleci/ansible/configure-server.yml
-            cat backend/.env
-            ls backend
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt configure-server.yml
       - run:
           name: Rollback on fail
           when: on_fail
@@ -188,7 +173,7 @@ jobs:
           paths:
             - project/backend
       - destroy-environment:
-          workflow_id: "${CIRCLE_WORKFLOW_ID}"
+          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
   
   run-migrations:
     docker:
