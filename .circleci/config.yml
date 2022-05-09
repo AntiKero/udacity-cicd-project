@@ -192,7 +192,7 @@ jobs:
       - run:
           name: Run migrations
           no_output_timeout: 30m
-          working_directory: ./backend
+          working_directory: project/backend
           command: |
             npm install
             npm run build
