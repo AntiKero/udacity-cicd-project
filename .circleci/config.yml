@@ -193,28 +193,48 @@ jobs:
   run-migrations:
     docker:
       - image: circleci/node:13.8.0
+        user: root
     steps:
       - checkout
       - restore_cache:
           keys: [backend-build]
       - run:
+          name: Install dependencies
+          command: |
+            apt-get update
+            apt install -y awscli
+      - run:
+          name: Update backend env file
+          command: |
+            echo "NODE_ENV=production" >> backend/.env
+            echo "VERSION=1" >> backend/.env
+            echo "TYPEORM_CONNECTION=${TYPEORM_CONNECTION}" >> backend/.env
+            echo "TYPEORM_MIGRATIONS_DIR=${TYPEORM_MIGRATIONS_DIR}" >> backend/.env
+            echo "TYPEORM_ENTITIES=${TYPEORM_ENTITIES}" >> backend/.env
+            echo "TYPEORM_MIGRATIONS=${TYPEORM_MIGRATIONS}" >> backend/.env
+            echo "TYPEORM_HOST=${TYPEORM_HOST}" >> backend/.env
+            echo "TYPEORM_PORT=${TYPEORM_PORT}" >> backend/.env
+            echo "TYPEORM_USERNAME=${TYPEORM_USERNAME}" >> backend/.env
+            echo "TYPEORM_PASSWORD=${TYPEORM_PASSWORD}" >> backend/.env
+            echo "TYPEORM_DATABASE=${TYPEORM_DATABASE}" >> backend/.env
+      - run:
           name: Run migrations
           command: |
             cd backend
             npm install
-            npm run build
-            npm run migrations >> migration_output.txt
-            cat migration_output.txt
+            # npm audit fix --audit-level=critical
+            npm run migrations > migrations_dump.txt
+            cat migrations_dump.txt
       - run:
-          name: Store migration result in a file.
+          name: Send migration results to memstash
           command: |
-            cd backend
-            if grep -q "has been executed successfully." migration_output.txt
+            if grep -q "has been executed successfully." ~/project/backend/migrations_dump.txt
             then
-              curl https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+                # using kvdb.io, generate the bucket ID "Nxwo4oeUzcT5ZR7nWqqSzD" in your local terminal first
+                curl --insecure https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
             fi
       - destroy-environment:
-          workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   deploy-frontend:
     docker:
