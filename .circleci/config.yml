@@ -25,26 +25,17 @@ commands:
             aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
 
   revert-migrations:
-    description: Revert the last migration if successfully run in the current workflow
-    parameters:
-      when:
-        type: string
-      id:
-        type: string    
+    description: Revert the last migration if successfully run in the current workflow.
     steps:
       - run:
           name: Revert migrations
+          when: on_fail
           command: |
-            SUCCESS=1
-            echo {$SUCCESS}
-            if [ ${SUCCESS} == "1" ]
-            then
-              cd ~/project/backend
-              npm install
-              npm run migrations:revert
-              echo "roll back "
+            cd ~/project/backend
+            if [[ -f "~/project/.circleci/outputs/db_migration_success" ]]; then
+              npm i
+              npm run migration:revert
             fi
-              echo "revert migrations finish..."
 
 jobs:
   build-frontend:
