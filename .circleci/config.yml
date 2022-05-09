@@ -19,21 +19,29 @@ commands:
           when: on_fail
           command: |
             echo "Destroying environment: <<parameters.workflow_id>> "
-            aws cloudformation delete-stack --stack-name udapeople-backend-prod-<<parameters.workflow_id>>
+            aws cloudformation delete-stack --stack-name udapeople-backend-<<parameters.workflow_id>>
             aws s3 rm s3://udapeople-prod-<<parameters.workflow_id>> --recursive
             aws cloudformation delete-stack --stack-name udapeople-frontend-prod-<<parameters.workflow_id>>
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
+    parameters:
+      workflow_id:
+        type: string
     steps:
       - run:
           name: Revert migrations
           when: on_fail
           command: |
-            cd ~/project/backend
-            if [[ -f "~/project/.circleci/outputs/db_migration_success" ]]; then
-              npm i
-              npm run migration:revert
+            # kvdb.io GET URL code goes here
+            # Example: kvdb.io
+            SUCCESS=$(curl --insecure https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_<< parameters.workflow_id >>)
+            # Logic for reverting the database state
+            if test $SUCCESS -eq 1
+            then
+                cd ~/project/backend
+                npm install
+                npm run migrations:revert
             fi
 
 jobs:
@@ -111,6 +119,7 @@ jobs:
           command: |
               cd frontend
               npm audit fix --force
+
   scan-backend:
     docker:
       - image: circleci/node:13.8.0
@@ -156,7 +165,7 @@ jobs:
       - persist_to_workspace:
           root: ~/
           paths:
-             - project/.circleci/ansible/inventory.txt
+            - project/inventory.txt
 
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"      
@@ -170,8 +179,6 @@ jobs:
           fingerprints: ["ee:a9:61:f0:5b:eb:60:ed:d4:bc:6b:ee:dc:7b:94:68"]
       - attach_workspace:
           at: ~/
-      - restore_cache:
-          keys: [backend-build]
       - run: 
           name: Install dependencies
           command: |
@@ -186,10 +193,6 @@ jobs:
           when: on_fail
           command: |
             apk add --update py3-pip && pip3 install --upgrade pip && pip3 install awscli
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/backend
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
   
@@ -216,10 +219,6 @@ jobs:
             then
               curl https://kvdb.io/9GE4jRtKznmVKRfvdBABBe/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
             fi
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/.circleci/outputs/
       - destroy-environment:
           workflow_id: "${CIRCLE_WORKFLOW_ID:0:7}"
     
