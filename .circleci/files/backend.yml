@@ -55,7 +55,7 @@ Resources:
       SecurityGroups:
         - Ref: InstanceSecurityGroup
       KeyName: antikerokey
-      ImageId: ami-04505e74c0741db8d
+      ImageId: ami-068663a3c619dd892
       Tags:
         - Key: Name
           Value: !Sub backend-${ID}
